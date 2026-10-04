@@ -1,0 +1,57 @@
+# يبني ملف APK لتطبيق فائض (أندرويد) ويرفعه في صفحة التشغيل تحت "Artifacts".
+# الرابط اللي يفتحه التطبيق: من خانة app_url عند التشغيل اليدوي، أو من متغير المستودع FAYED_APP_URL
+# (Settings → Secrets and variables → Actions → Variables).
+name: Fayed Android APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      app_url:
+        description: 'رابط موقع فائض المنشور (مثل https://fayed.app)'
+        required: false
+  push:
+    branches: [main]
+    paths:
+      - 'fayed-pro/mobile/**'
+      - '.github/workflows/fayed-android.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: fayed-pro/mobile
+    env:
+      FAYED_APP_URL: ${{ inputs.app_url || vars.FAYED_APP_URL }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check app URL
+        run: |
+          if [ -z "$FAYED_APP_URL" ]; then
+            echo "::error::اكتب رابط الموقع في app_url أو أضف متغير المستودع FAYED_APP_URL"
+            exit 1
+          fi
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: fayed-pro/mobile/package-lock.json
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - run: npm ci
+      - run: npx cap sync android
+
+      - name: Build debug APK
+        working-directory: fayed-pro/mobile/android
+        run: ./gradlew assembleDebug --no-daemon
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fayed-android-apk
+          path: fayed-pro/mobile/android/app/build/outputs/apk/debug/app-debug.apk

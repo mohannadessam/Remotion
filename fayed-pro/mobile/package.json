@@ -1,0 +1,25 @@
+{
+  "name": "fayed-mobile",
+  "version": "1.0.0",
+  "private": true,
+  "description": "تطبيق فائض لأندرويد وآيفون (غلاف Capacitor للموقع المنشور)",
+  "scripts": {
+    "sync": "cap sync",
+    "assets": "capacitor-assets generate --android --ios --iconBackgroundColor '#173f35' --splashBackgroundColor '#f7f6f2'",
+    "android": "cap open android",
+    "ios": "cap open ios"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.5.2",
+    "@capacitor/core": "^8.5.2",
+    "@capacitor/filesystem": "^8.1.4",
+    "@capacitor/ios": "^8.5.2",
+    "@capacitor/share": "^8.0.3",
+    "@capacitor/splash-screen": "^8.0.2"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.5.2",
+    "typescript": "^5.9.3"
+  }
+}
