@@ -12,9 +12,11 @@ import { Button } from "@/components/ui/button";
 import { useLiveTrucks, type NearbyTruck } from "@/hooks/use-live-trucks";
 import { displayCrowd } from "@/lib/crowd";
 import { cuisineEmoji } from "@/lib/cuisine";
+import { HAS_INTERACTIVE_MAP } from "@/lib/env";
 import { localized } from "@/lib/format";
 import { formatDistance, RIYADH_CENTER, type LatLng } from "@/lib/geo";
 import { cn } from "@/lib/utils";
+import { StaticTruckMap } from "./static-truck-map";
 
 // MapLibre touches `window`, so it only loads in the browser.
 const TruckMap = dynamic(() => import("./truck-map").then((m) => m.TruckMap), {
@@ -66,7 +68,19 @@ export function MapHome() {
 
   return (
     <div className="relative h-[calc(100dvh-3.5rem-env(safe-area-inset-bottom))] overflow-hidden">
-      {center ? (
+      {center && !HAS_INTERACTIVE_MAP ? (
+        <StaticTruckMap
+          center={center}
+          userLocation={location.position}
+          trucks={trucks}
+          selectedId={selectedId}
+          onSelect={select}
+          labelFor={labelFor}
+          ariaLabel={t("map.mapLabel")}
+          youAreHereLabel={t("map.youAreHere")}
+          note={t("map.staticMap")}
+        />
+      ) : center ? (
         <TruckMap
           center={center}
           userLocation={location.position}
@@ -118,7 +132,7 @@ export function MapHome() {
         ) : null}
       </header>
 
-      {location.position ? (
+      {location.position && HAS_INTERACTIVE_MAP ? (
         <Button
           variant="outline"
           size="icon"

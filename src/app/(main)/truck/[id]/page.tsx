@@ -9,6 +9,8 @@ import { LiveTruckStatus } from "@/components/live-truck-status";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { Badge } from "@/components/ui/badge";
 import { cuisineEmoji } from "@/lib/cuisine";
+import { DEMO_MODE } from "@/lib/demo/mode";
+import * as demo from "@/lib/demo/store";
 import { formatSar, localized, localizedDescription, numberLocale } from "@/lib/format";
 import { formatDistance } from "@/lib/geo";
 import { createClient } from "@/lib/supabase/server";
@@ -18,6 +20,7 @@ type Params = { params: Promise<{ id: string }> };
 
 async function getTruck(id: string) {
   if (!z.uuid().safeParse(id).success) return null;
+  if (DEMO_MODE) return demo.truckDetail(id);
   const supabase = await createClient();
   const [{ data: truck }, { data: categories }, { data: items }] = await Promise.all([
     supabase

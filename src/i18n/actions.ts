@@ -3,6 +3,7 @@
 import { cookies } from "next/headers";
 import { z } from "zod";
 import { LOCALE_COOKIE, locales } from "./config";
+import { DEMO_MODE } from "@/lib/demo/mode";
 import { createClient } from "@/lib/supabase/server";
 
 const schema = z.enum(locales);
@@ -16,6 +17,7 @@ export async function setLocale(value: string) {
   });
 
   // Remember the preference on the profile too (used for notifications later).
+  if (DEMO_MODE) return;
   const supabase = await createClient();
   const {
     data: { user },

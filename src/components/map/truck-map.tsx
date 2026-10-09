@@ -5,34 +5,36 @@ import { useEffect, useRef } from "react";
 import type { NearbyTruck } from "@/hooks/use-live-trucks";
 import { CROWD_COLORS, displayCrowd } from "@/lib/crowd";
 import { cuisineEmoji } from "@/lib/cuisine";
-import { MAP_STYLE_URL } from "@/lib/env";
+import { MAP_STYLE_URL, MAPBOX_TOKEN } from "@/lib/env";
 import type { LatLng } from "@/lib/geo";
+import { MARKER_CLASS, MARKER_INNER_HTML, USER_DOT_CLASS } from "./marker";
 
-// Keyless raster basemap (OSM data via CARTO). Override with NEXT_PUBLIC_MAP_STYLE_URL
-// (e.g. a Mapbox or MapTiler style) for production. See docs/decisions.md.
-const FALLBACK_STYLE: StyleSpecification = {
-  version: 8,
-  sources: {
-    carto: {
-      type: "raster",
-      tiles: ["a", "b", "c", "d"].map(
-        (s) => `https://${s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png`,
-      ),
-      tileSize: 256,
-      maxzoom: 19,
-      attribution: "© OpenStreetMap contributors © CARTO",
+// Mapbox raster tiles rendered by MapLibre (open-source Mapbox GL fork), or any MapLibre style
+// from NEXT_PUBLIC_MAP_STYLE_URL. Without either, map-home renders StaticTruckMap instead.
+function mapStyle(): string | StyleSpecification {
+  if (MAP_STYLE_URL) return MAP_STYLE_URL;
+  return {
+    version: 8,
+    sources: {
+      mapbox: {
+        type: "raster",
+        tiles: [`https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/512/{z}/{x}/{y}@2x?access_token=${MAPBOX_TOKEN}`],
+        tileSize: 512,
+        maxzoom: 20,
+        attribution: "© Mapbox © OpenStreetMap",
+      },
     },
-  },
-  layers: [
-    { id: "background", type: "background", paint: { "background-color": "#efe9df" } },
-    { id: "carto", type: "raster", source: "carto" },
-  ],
-};
+    layers: [
+      { id: "background", type: "background", paint: { "background-color": "#efe9df" } },
+      { id: "mapbox", type: "raster", source: "mapbox" },
+    ],
+  };
+}
 
 // Copied to public/ by scripts/copy-maplibre-worker.mjs (postinstall).
 setWorkerUrl("/maplibre/maplibre-gl-worker.mjs");
 
-type Props = {
+export type TruckMapProps = {
   center: LatLng;
   userLocation: LatLng | null;
   trucks: NearbyTruck[];
@@ -64,7 +66,7 @@ export function TruckMap({
   ariaLabel,
   youAreHereLabel,
   recenterSignal,
-}: Props) {
+}: TruckMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const markersRef = useRef(new Map<string, Marker>());
@@ -81,7 +83,7 @@ export function TruckMap({
     const markers = markersRef.current;
     const map = new MapLibreMap({
       container: containerRef.current,
-      style: MAP_STYLE_URL || FALLBACK_STYLE,
+      style: mapStyle(),
       center: [center.lng, center.lat],
       zoom: 12,
       attributionControl: { compact: true },
@@ -131,7 +133,7 @@ export function TruckMap({
     if (!map || !userLocation) return;
     if (!userMarkerRef.current) {
       const el = document.createElement("div");
-      el.className = "size-4 rounded-full border-[3px] border-white bg-navy shadow-[0_0_0_6px_rgb(4_44_83/0.2)]";
+      el.className = USER_DOT_CLASS;
       el.setAttribute("role", "img");
       el.setAttribute("aria-label", youAreHereLabel);
       userMarkerRef.current = new Marker({ element: el }).setLngLat([userLocation.lng, userLocation.lat]).addTo(map);
@@ -156,10 +158,8 @@ export function TruckMap({
         el.type = "button";
         el.dataset.truckId = truck.id;
         el.dataset.testid = "truck-marker";
-        el.className =
-          "group grid size-11 cursor-pointer place-items-center rounded-full border-[3px] border-white bg-[var(--marker-color)] shadow-md transition-transform data-[selected=true]:scale-125 data-[selected=true]:z-10";
-        el.innerHTML =
-          '<span data-emoji class="text-lg leading-none"></span><span aria-hidden="true" class="absolute -bottom-1 size-2 rotate-45 bg-[var(--marker-color)]"></span>';
+        el.className = MARKER_CLASS;
+        el.innerHTML = MARKER_INNER_HTML;
         el.addEventListener("click", (event) => {
           event.stopPropagation();
           onSelectRef.current(truck.id);

@@ -4,6 +4,7 @@ import { ImagePlus, Trash2 } from "lucide-react";
 import Image from "next/image";
 import { useId, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { DEMO_MODE } from "@/lib/demo/mode";
 import { createClient } from "@/lib/supabase/client";
 
 const EXT: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
@@ -48,6 +49,8 @@ export function ImageUpload({
           <ImagePlus className="size-6 text-muted-foreground" aria-hidden />
         )}
       </div>
+      {/* Uploads need Supabase Storage, which demo mode doesn't have. */}
+      {DEMO_MODE ? null : (
       <div className="flex flex-col gap-1">
         <input
           id={inputId}
@@ -78,6 +81,7 @@ export function ImageUpload({
           </p>
         ) : null}
       </div>
+      )}
     </div>
   );
 }

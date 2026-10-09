@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Database } from "@/lib/database.types";
+import { DEMO_MODE } from "@/lib/demo/mode";
 import { DEFAULT_RADIUS_M, distanceMeters, type LatLng } from "@/lib/geo";
 import { createClient } from "@/lib/supabase/client";
 
@@ -31,6 +32,15 @@ export function useLiveTrucks(center: LatLng | null, onlyOnline: boolean, radius
   const refetch = useCallback(async () => {
     const { center: c, onlyOnline: online, radiusM: radius } = params.current;
     if (!c) return;
+    if (DEMO_MODE) {
+      const qs = new URLSearchParams({ lat: String(c.lat), lng: String(c.lng), radius: String(radius), online: String(online) });
+      const res = await fetch(`/api/demo/trucks?${qs}`);
+      if (res.ok) {
+        setTrucks(await res.json());
+        setLoaded(true);
+      }
+      return;
+    }
     const { data, error } = await createClient().rpc("nearby_trucks", {
       p_lat: c.lat,
       p_lng: c.lng,
@@ -48,6 +58,8 @@ export function useLiveTrucks(center: LatLng | null, onlyOnline: boolean, radius
   }, [refetch, center?.lat, center?.lng, onlyOnline, radiusM]);
 
   useEffect(() => {
+    // Demo mode has no Realtime; the polling fallback below keeps the map fresh.
+    if (DEMO_MODE) return;
     const supabase = createClient();
     let refetchTimer: ReturnType<typeof setTimeout> | undefined;
     const scheduleRefetch = () => {

@@ -11,7 +11,7 @@ Decisions made while building, per CLAUDE.md §12 ("decide, note it, keep going"
 - **Font: Tajawal via `@fontsource/tajawal`.** Self-hosted from npm, so no build-time dependency on Google Fonts.
 - **shadcn/ui components are hand-written in the shadcn style** (`src/components/ui`, cva + Radix via the `radix-ui` package, `components.json` present). The shadcn registry was unreachable from the build environment; the CLI can be used later with the same aliases. All controls are ≥ 44 px tall.
 - **Brand tokens** are CSS variables in `globals.css` mapped to Tailwind v4 `@theme`. Crowd badges use tinted backgrounds with darker "ink" text colours, because white text on the moderate amber (`#C98A28`) fails WCAG AA.
-- **Maps: MapLibre GL (open-source Mapbox GL fork) with a keyless raster basemap (OSM data via CARTO).** No Mapbox/Google key was provided. Setting `NEXT_PUBLIC_MAP_STYLE_URL` switches to any MapLibre/Mapbox-compatible style (Mapbox, MapTiler…) with no code change. For production traffic use a paid tile provider (CARTO/OSM free tiles have usage limits). Markers are DOM elements, so the map stays usable even when tiles fail to load.
+- **Maps: MapLibre GL (open-source Mapbox GL fork).** It renders Mapbox raster tiles when `NEXT_PUBLIC_MAPBOX_TOKEN` is set, or any MapLibre style from `NEXT_PUBLIC_MAP_STYLE_URL`. Without either, the map home shows a static fallback map (see "Demo mode" below). *Revised:* the first version defaulted to free CARTO/OSM tiles with no key; that was dropped in favour of the brief's Mapbox choice plus a fallback that needs no network at all.
 - **MapLibre v6 worker** is served from `public/maplibre/` (copied by a `postinstall` script) because Next's bundler doesn't emit the separate worker module MapLibre v6 loads at runtime.
 - **Schema notes.**
   - `vendor_status` adds `rejected` (admin can approve *or reject*, §4).
@@ -49,3 +49,31 @@ Decisions made while building, per CLAUDE.md §12 ("decide, note it, keep going"
 - **Distances** come from PostGIS (`ST_Distance` on geography) in `nearby_trucks()` and are recomputed client-side (haversine) when a truck moves.
 - **The add-to-cart UI is deferred to step 5** (cart + server-side pricing); the truck page shows the full menu with prices and availability now.
 - **Testing note:** right after `supabase db reset`, Realtime reports `SUBSCRIBED` a few seconds before changes actually flow. The e2e tests in step 10 should wait for the first event (or retry) rather than trusting the status alone.
+
+## Demo mode (`DEMO_MODE=true`)
+
+- **What it is.** `DEMO_MODE=true npm run dev` runs the whole app with no Supabase and no map keys, for demos, design reviews and screenshots. It serves the seeded trucks, menus, crowd states and demo users from `src/lib/demo/fixtures.json`.
+- **Where the fixtures come from.** `fixtures.json` is a snapshot of `supabase/seed.sql`, exported from a freshly reset local database by `scripts/export-demo-fixtures.mjs`. After changing the seed, run `npx supabase db reset && node scripts/export-demo-fixtures.mjs`.
+- **How it works.** One flag (`DEMO_MODE`, exposed to client code through `next.config.ts` `env`) switches the data sources in a few places:
+  - the auth data access layer (`src/lib/auth.ts`)
+  - the login, locale, account and vendor server actions
+  - the truck and menu pages
+  - two small API routes (`/api/demo/trucks`, `/api/demo/trucks/[id]`) that stand in for the `nearby_trucks()` RPC and per-truck polling
+  - `proxy.ts`, which skips session refresh
+
+  The demo routes return 404 when the flag is off. There is no fake Supabase client.
+- **Same rules as the database.** `src/lib/demo/store.ts` keeps the data in server memory and mirrors the database behaviour the demo shows:
+  - crowd level and wait are recomputed from the same thresholds, and manual mode wins
+  - only approved, unsuspended trucks are public; the pending truck returns 404
+  - pending vendors can't go online
+- **Sign-in.** Any valid Saudi number with code `123456`. Seeded numbers map to their profiles (0500000002 = vendor of برجر الحارة); any other number becomes a new customer. The session is an httpOnly cookie holding the demo profile id.
+- **What can change.** The vendor live controls work: online/offline with device GPS, location pings, crowd mode, item availability, and profile name. Everything resets when the server restarts. Truck profile, menu add/edit/delete and vendor applications reply «وضع التجربة: التعديل هذا ما ينحفظ» instead of saving, and photo upload is hidden (it needs Storage). This keeps the demo layer small.
+- **No Realtime in demo mode.** The map and the truck/dashboard status cards use the existing 30 s polling fallback, so the realtime badge reads «تحديث كل 30 ثانية».
+- **Static map fallback.** When neither `NEXT_PUBLIC_MAPBOX_TOKEN` nor `NEXT_PUBLIC_MAP_STYLE_URL` is set (in demo mode or not), the map home renders `StaticTruckMap`:
+  - a plain grid background with the same crowd-coloured markers and "you are here" dot, positioned by an equirectangular projection fitted to the customer and nearby trucks
+  - same framing padding as the interactive map's `fitBounds`
+  - no tiles, no panning, and the recenter button is hidden
+  - a small «خريطة مبسّطة» label
+
+  It needs no network, so it also works offline and in CI.
+- **Screenshots.** `scripts/capture-screens.mjs` captures 390×844 shots of login, map + list, truck page and vendor dashboard into `docs/screens/`. It does Arabic first, then English after switching with the in-app language toggle.

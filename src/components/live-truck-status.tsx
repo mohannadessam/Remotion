@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { CrowdBadge } from "@/components/crowd-badge";
 import { displayCrowd, type CrowdLevel } from "@/lib/crowd";
+import { DEMO_MODE } from "@/lib/demo/mode";
 import { createClient } from "@/lib/supabase/client";
 
 type LiveState = {
@@ -23,6 +24,7 @@ export function LiveTruckStatus({ truckId, initial }: { truckId: string; initial
   const [live, setLive] = useState(false);
 
   useEffect(() => {
+    if (DEMO_MODE) return; // no Realtime in demo mode; polling below
     const supabase = createClient();
     const channel = supabase
       .channel(`truck-${truckId}`)
@@ -46,6 +48,11 @@ export function LiveTruckStatus({ truckId, initial }: { truckId: string; initial
   useEffect(() => {
     if (live) return;
     const id = setInterval(async () => {
+      if (DEMO_MODE) {
+        const res = await fetch(`/api/demo/trucks/${truckId}`);
+        if (res.ok) setState(await res.json());
+        return;
+      }
       const { data } = await createClient()
         .from("trucks")
         .select("is_online, crowd_status, active_orders, est_wait_minutes")

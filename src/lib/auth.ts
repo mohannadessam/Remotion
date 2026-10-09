@@ -1,10 +1,17 @@
 import "server-only";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
+import { DEMO_MODE, DEMO_SESSION_COOKIE } from "@/lib/demo/mode";
+import * as demo from "@/lib/demo/store";
 import { createClient } from "@/lib/supabase/server";
 
 /** Current user's profile, or null when signed out. Deduped per request. */
 export const getCurrentProfile = cache(async () => {
+  if (DEMO_MODE) {
+    const id = (await cookies()).get(DEMO_SESSION_COOKIE)?.value;
+    return id ? demo.getProfile(id) : null;
+  }
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
   const userId = data?.claims?.sub;
@@ -38,6 +45,7 @@ export function homeForRole(role: string) {
 /** For vendor pages: the signed-in vendor's application and (first) truck. */
 export const getVendorContext = cache(async () => {
   const profile = await requireProfile("/vendor");
+  if (DEMO_MODE) return { profile, ...demo.vendorContext(profile.id) };
   const supabase = await createClient();
   const { data: vendor } = await supabase
     .from("vendors")

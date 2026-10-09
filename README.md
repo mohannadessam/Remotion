@@ -9,7 +9,25 @@ See [`CLAUDE.md`](./CLAUDE.md) for the product brief and [`docs/decisions.md`](.
 
 Next.js 16 (App Router, TypeScript) · Tailwind v4 + shadcn-style UI · next-intl (Arabic/RTL by default) · Supabase (Postgres + PostGIS, Auth phone OTP, Realtime, Storage) · MapLibre GL · Vitest · Playwright
 
-## Run locally
+## Quick demo (no keys, no Supabase)
+
+```bash
+npm install
+DEMO_MODE=true npm run dev    # http://localhost:3000, sign in with any number below, code 123456
+```
+
+Serves the seeded trucks, menus and crowd states from local fixtures, with a static map when no Mapbox token is set. See "Demo mode" in [`docs/decisions.md`](./docs/decisions.md) for what is and isn't saved.
+
+| | Arabic (default) | English |
+| --- | --- | --- |
+| Login | [ar-1-login](docs/screens/ar-1-login.png) | [en-1-login](docs/screens/en-1-login.png) |
+| Map + truck list | [ar-2-map](docs/screens/ar-2-map.png) | [en-2-map](docs/screens/en-2-map.png) |
+| Truck page + menu | [ar-3-truck](docs/screens/ar-3-truck.png) | [en-3-truck](docs/screens/en-3-truck.png) |
+| Vendor dashboard | [ar-4-vendor-dashboard](docs/screens/ar-4-vendor-dashboard.png) | [en-4-vendor-dashboard](docs/screens/en-4-vendor-dashboard.png) |
+
+Regenerate with `npm run screens` while the app is running.
+
+## Run locally with Supabase
 
 Requires Node 22+ and Docker.
 
@@ -41,6 +59,8 @@ Demo logins (local only, OTP is always `123456`):
 | `npm run test:unit` | Unit tests only |
 | `npm run db:reset` | Re-apply migrations and seed |
 | `npm run db:types` | Regenerate `src/lib/database.types.ts` |
+| `npm run demo:fixtures` | Re-export `src/lib/demo/fixtures.json` from the seeded local DB |
+| `npm run screens` | Capture `docs/screens/*.png` from a running app |
 
 ## Layout
 
@@ -51,6 +71,7 @@ src/app/(main)/        customer: map home, truck page, account
 src/app/vendor/        vendor: onboarding, dashboard (online/GPS, crowd), truck profile, menu
 src/app/login/         phone OTP
 src/lib/               supabase clients, auth (DAL), zod schemas, phone/geo/crowd helpers
+src/lib/demo/          DEMO_MODE fixtures + in-memory store
 messages/              ar.json (default) / en.json
 tests/                 unit + RLS integration tests
 ```

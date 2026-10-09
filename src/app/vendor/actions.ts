@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { dbErrorKey, invalid, type ActionResult } from "@/lib/action-result";
 import { getVendorContext } from "@/lib/auth";
+import { DEMO_MODE } from "@/lib/demo/mode";
+import * as demo from "@/lib/demo/store";
 import { SUPABASE_URL } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -16,6 +18,9 @@ import {
   truckProfileSchema,
   vendorApplicationSchema,
 } from "@/lib/validation";
+
+// In demo mode only the live controls (online, GPS, crowd, availability) change state.
+const DEMO_READ_ONLY = { ok: false, error: "demoReadOnly" } as const;
 
 async function vendorTruck() {
   const ctx = await getVendorContext();
@@ -34,6 +39,7 @@ function isOwnImage(url: string | null, bucket: string, userId: string) {
 export async function applyAsVendor(input: z.input<typeof vendorApplicationSchema>): Promise<ActionResult> {
   const parsed = vendorApplicationSchema.safeParse(input);
   if (!parsed.success) return invalid(parsed.error);
+  if (DEMO_MODE) return DEMO_READ_ONLY;
 
   const supabase = await createClient();
   const { error } = await supabase.rpc("apply_as_vendor", {
@@ -55,6 +61,7 @@ export async function applyAsVendor(input: z.input<typeof vendorApplicationSchem
 export async function saveTruck(input: z.input<typeof truckProfileSchema>): Promise<ActionResult> {
   const parsed = truckProfileSchema.safeParse(input);
   if (!parsed.success) return invalid(parsed.error);
+  if (DEMO_MODE) return DEMO_READ_ONLY;
 
   const ctx = await getVendorContext();
   if (!ctx.vendor) return { ok: false, error: "forbidden" };
@@ -95,6 +102,12 @@ export async function setOnline(input: z.input<typeof setOnlineSchema>): Promise
   const ctx = await vendorTruck();
   if (!ctx) return { ok: false, error: "forbidden" };
   if (parsed.data.online && ctx.vendor.status !== "approved") return { ok: false, error: "vendor_not_approved" };
+  if (DEMO_MODE) {
+    const d = parsed.data;
+    const error = demo.setOnline(ctx.truck.id, d.online, d.online ? { lat: d.lat, lng: d.lng } : undefined);
+    revalidatePath("/vendor");
+    return error ? { ok: false, error } : { ok: true };
+  }
 
   const supabase = await createClient();
   if (parsed.data.online) {
@@ -118,6 +131,10 @@ export async function updateLocation(input: z.input<typeof latLngSchema>): Promi
   if (!parsed.success) return invalid(parsed.error);
   const ctx = await vendorTruck();
   if (!ctx) return { ok: false, error: "forbidden" };
+  if (DEMO_MODE) {
+    demo.updateLocation(ctx.truck.id, parsed.data);
+    return { ok: true };
+  }
 
   const supabase = await createClient();
   const { error } = await supabase.rpc("update_truck_location", {
@@ -133,6 +150,11 @@ export async function setCrowdMode(input: z.input<typeof crowdModeSchema>): Prom
   if (!parsed.success) return invalid(parsed.error);
   const ctx = await vendorTruck();
   if (!ctx) return { ok: false, error: "forbidden" };
+  if (DEMO_MODE) {
+    demo.setCrowdMode(ctx.truck.id, parsed.data.mode, parsed.data.mode === "manual" ? parsed.data.level : null);
+    revalidatePath("/vendor");
+    return { ok: true };
+  }
 
   const supabase = await createClient();
   const { error } = await supabase
@@ -154,6 +176,7 @@ export async function setCrowdMode(input: z.input<typeof crowdModeSchema>): Prom
 export async function saveCategory(input: z.input<typeof categorySchema>): Promise<ActionResult<{ id: string }>> {
   const parsed = categorySchema.safeParse(input);
   if (!parsed.success) return invalid(parsed.error);
+  if (DEMO_MODE) return DEMO_READ_ONLY;
   const ctx = await vendorTruck();
   if (!ctx) return { ok: false, error: "forbidden" };
 
@@ -180,6 +203,7 @@ export async function saveCategory(input: z.input<typeof categorySchema>): Promi
 export async function deleteCategory(id: string): Promise<ActionResult> {
   const parsedId = z.uuid().safeParse(id);
   if (!parsedId.success) return invalid(parsedId.error);
+  if (DEMO_MODE) return DEMO_READ_ONLY;
   const ctx = await vendorTruck();
   if (!ctx) return { ok: false, error: "forbidden" };
 
@@ -193,6 +217,7 @@ export async function deleteCategory(id: string): Promise<ActionResult> {
 export async function saveMenuItem(input: z.input<typeof menuItemSchema>): Promise<ActionResult<{ id: string }>> {
   const parsed = menuItemSchema.safeParse(input);
   if (!parsed.success) return invalid(parsed.error);
+  if (DEMO_MODE) return DEMO_READ_ONLY;
   const ctx = await vendorTruck();
   if (!ctx) return { ok: false, error: "forbidden" };
   if (!isOwnImage(parsed.data.imageUrl, "menu-images", ctx.profile.id)) {
@@ -230,6 +255,11 @@ export async function setItemAvailability(id: string, isAvailable: boolean): Pro
   if (!parsed.success) return invalid(parsed.error);
   const ctx = await vendorTruck();
   if (!ctx) return { ok: false, error: "forbidden" };
+  if (DEMO_MODE) {
+    demo.setItemAvailability(ctx.truck.id, parsed.data.id, parsed.data.isAvailable);
+    revalidatePath("/vendor/menu");
+    return { ok: true };
+  }
 
   const supabase = await createClient();
   const { error } = await supabase
@@ -245,6 +275,7 @@ export async function setItemAvailability(id: string, isAvailable: boolean): Pro
 export async function deleteMenuItem(id: string): Promise<ActionResult> {
   const parsedId = z.uuid().safeParse(id);
   if (!parsedId.success) return invalid(parsedId.error);
+  if (DEMO_MODE) return DEMO_READ_ONLY;
   const ctx = await vendorTruck();
   if (!ctx) return { ok: false, error: "forbidden" };
 

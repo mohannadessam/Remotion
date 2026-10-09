@@ -3,6 +3,9 @@ import { NextResponse, type NextRequest } from "next/server";
 
 // Refreshes the Supabase session cookie on every page request.
 export async function proxy(request: NextRequest) {
+  // Demo mode has no Supabase session to refresh.
+  if (process.env.DEMO_MODE === "true") return NextResponse.next({ request });
+
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(

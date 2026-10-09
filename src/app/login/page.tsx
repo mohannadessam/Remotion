@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { Logo } from "@/components/logo";
 import { getCurrentProfile, homeForRole, safeNextPath } from "@/lib/auth";
+import { DEMO_MODE } from "@/lib/demo/mode";
 import { LoginForm } from "./login-form";
 
 export async function generateMetadata() {
@@ -29,7 +30,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           <p className="mt-1 text-muted-foreground">{t("auth.subtitle")}</p>
         </div>
         <LoginForm next={safeNextPath(next, "")} />
-        {process.env.NEXT_PUBLIC_SHOW_DEMO_HINT === "true" ? (
+        {process.env.NEXT_PUBLIC_SHOW_DEMO_HINT === "true" || DEMO_MODE ? (
           <p className="rounded-lg bg-secondary p-3 text-sm text-secondary-foreground">{t("auth.demoHint")}</p>
         ) : null}
       </div>

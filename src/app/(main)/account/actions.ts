@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { invalid, type ActionResult } from "@/lib/action-result";
 import { getCurrentProfile } from "@/lib/auth";
+import { DEMO_MODE } from "@/lib/demo/mode";
+import * as demo from "@/lib/demo/store";
 import { createClient } from "@/lib/supabase/server";
 import { profileSchema } from "@/lib/validation";
 
@@ -11,6 +13,11 @@ export async function updateProfile(input: { fullName: string }): Promise<Action
   if (!parsed.success) return invalid(parsed.error);
   const profile = await getCurrentProfile();
   if (!profile) return { ok: false, error: "unauthorized" };
+  if (DEMO_MODE) {
+    demo.setProfileName(profile.id, parsed.data.fullName);
+    revalidatePath("/account");
+    return { ok: true };
+  }
 
   const supabase = await createClient();
   const { error } = await supabase.from("profiles").update({ full_name: parsed.data.fullName }).eq("id", profile.id);

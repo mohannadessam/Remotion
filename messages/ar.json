@@ -60,7 +60,8 @@
     "youAreHere": "موقعك",
     "liveUpdates": "تحديث مباشر",
     "polling": "تحديث كل 30 ثانية",
-    "mapLabel": "خريطة الترَكات"
+    "mapLabel": "خريطة الترَكات",
+    "staticMap": "خريطة مبسّطة"
   },
   "crowd": {
     "empty": "فاضي",
@@ -209,6 +210,7 @@
     "vendor_already_reviewed": "طلبك انراجع خلاص، ما ينفع تعدّله",
     "duplicate_cr": "رقم السجل هذا مسجّل عندنا",
     "invalidCr": "رقم السجل التجاري لازم يكون 10 أرقام",
-    "invalidLicense": "رقم الرخصة غير صحيح"
+    "invalidLicense": "رقم الرخصة غير صحيح",
+    "demoReadOnly": "وضع التجربة: التعديل هذا ما ينحفظ"
   }
 }

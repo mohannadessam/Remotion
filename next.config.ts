@@ -6,6 +6,8 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   : null;
 
 const nextConfig: NextConfig = {
+  // DEMO_MODE=true serves fixtures instead of Supabase (see src/lib/demo). Inlined for client code too.
+  env: { DEMO_MODE: process.env.DEMO_MODE === "true" ? "true" : "false" },
   // Locale and session both come from cookies, so nearly every route is request-time.
   // Cache Components would force Suspense boundaries everywhere for no gain; see docs/decisions.md.
   cacheComponents: false,

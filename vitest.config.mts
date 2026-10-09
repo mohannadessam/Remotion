@@ -4,7 +4,10 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig(({ mode }) => ({
   plugins: [react()],
-  resolve: { tsconfigPaths: true },
+  resolve: {
+    tsconfigPaths: true,
+    alias: { "server-only": new URL("./tests/stubs/server-only.ts", import.meta.url).pathname },
+  },
   test: {
     env: loadEnv(mode, process.cwd(), ""),
     include: ["tests/unit/**/*.test.ts", "tests/integration/**/*.test.ts"],

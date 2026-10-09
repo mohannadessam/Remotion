@@ -60,7 +60,8 @@
     "youAreHere": "You are here",
     "liveUpdates": "Live",
     "polling": "Updating every 30 s",
-    "mapLabel": "Truck map"
+    "mapLabel": "Truck map",
+    "staticMap": "Simplified map"
   },
   "crowd": {
     "empty": "Quiet",
@@ -209,6 +210,7 @@
     "vendor_already_reviewed": "Your application was already reviewed and can't be edited",
     "duplicate_cr": "This CR number is already registered",
     "invalidCr": "CR number must be 10 digits",
-    "invalidLicense": "Invalid license number"
+    "invalidLicense": "Invalid license number",
+    "demoReadOnly": "Demo mode: this change isn’t saved"
   }
 }
